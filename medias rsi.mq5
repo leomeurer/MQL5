@@ -54,12 +54,13 @@ double ma_slow_Buffer[];
 
 //RSI
 int rsi_Handle;
-int rsi_Buffer[];
+double rsi_Buffer[];
 
 //Variables for functions
 int magic_number = 112233;
 
-MqlRates candle[];
+MqlRates rates[];
+int copiedRates;
 MqlTick tick;
 
 
@@ -81,8 +82,8 @@ int OnInit()
       return(-1);
      }
      
-   CopyRates(_Symbol,_Period,0,4,candle);
-   ArraySetAsSeries(candle,true);
+   CopyRates(_Symbol,_Period,0,4,rates);
+   ArraySetAsSeries(rates,true);
    
    ChartIndicatorAdd(0,0,ma_fast_Handle);     
    ChartIndicatorAdd(0,0,ma_slow_Handle);
@@ -107,6 +108,65 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //---
+   //Copy buffers
+   CopyBuffer(ma_fast_Handle,0,0,4,ma_fast_Buffer);
+   CopyBuffer(ma_slow_Handle,0,0,4,ma_slow_Buffer);
+   CopyBuffer(rsi_Handle,0,0,4,rsi_Buffer);
+   
+   //Copy Rates
+   copiedRates = CopyRates(_Symbol,_Period,0,4,rates);
+   
+   if(copiedRates > 0)
+     {
+      Print("RatesInfo: copied "+ IntegerToString(copiedRates));
+      string format = "open = %G, high = %G, low = %G, close = %G, volume = %d";
+      string out;
+      int size = fmin (copiedRates,4);
+      for(int i=0; i<size; i++)
+        {
+         out=IntegerToString(i)+":"+TimeToString(rates[i].time);
+         out=out+" "+StringFormat(format,
+                                  rates[i].open,
+                                  rates[i].high,
+                                  rates[i].low,
+                                  rates[i].close,
+                                  rates[i].tick_volume);
+         Print(out);
+        }
+     }else
+       {
+        Print("Failed to get history data for the symbol ",_Symbol);
+       } 
+   
+   //Copy tick  
+   if(SymbolInfoTick(_Symbol,tick))
+     {
+      Print("TickInfo: ", tick.time,
+            " Bid = ",tick.bid, 
+            " Ask = ",tick.ask,
+            " Volume = ",tick.volume,
+            " Last = ", tick.last,
+            " Flag = ", tick.flags
+            );
+     }
+   else Print("SymbolInfoTick() fail, error = ",GetLastError());
+   
+   //Sort vectors
+   ArraySetAsSeries(rates,true);
+   ArraySetAsSeries(ma_fast_Buffer,true);
+   ArraySetAsSeries(ma_slow_Buffer,true);
+   ArraySetAsSeries(rsi_Buffer,true);
+   
+
+  
+   
+  
+  
+   
+//---
+   
+   
+
    
   }
   
